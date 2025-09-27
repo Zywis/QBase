@@ -40,7 +40,7 @@ Public Sub Przyklad_Wyniki_20()
     specID = DLookup("SpecyfikacjaID", "Specyfikacje", "Kod='D-05.03.05B'")
     
     ' Partia
-    ExecSQL "INSERT INTO Partie(ObiektID, WarstwaID, SpecyfikacjaID, KM_Start_m, KM_End_m, DataWbudowania, Ilosc, Jednostka, Wykonawca, [Status]) " & _
+    ExecSQL "INSERT INTO Partie(ObiektID, WarstwaID, SpecyfikacjaID, KM_Start_m, KM_End_m, DataWbudowania, Ilosc, Jednostka, Wykonawca, Status) " & _
             "VALUES(" & obID & "," & warstwaID & "," & specID & ",0,100,Date(),200,'t','Wykonawca X','Aktywna')"
     partiaID = DLookup("PartiaID", "Partie", "ObiektID=" & obID & " AND WarstwaID=" & warstwaID)
    
@@ -58,7 +58,7 @@ Public Sub Przyklad_Wyniki_20()
 
     oczVar = DLookup("ExpID", "OczekiwaneBadanie", "PartiaID=" & partiaID & " AND PlanID=" & planID)
     If IsNull(oczVar) Then
-        ExecSQL "INSERT INTO OczekiwaneBadanie(PartiaID, PlanID, RodzajBadaniaID, ParametrID, Termin, [Status]) " & _
+        ExecSQL "INSERT INTO OczekiwaneBadanie(PartiaID, PlanID, RodzajBadaniaID, ParametrID, Termin, Status) " & _
                 "VALUES(" & partiaID & "," & planID & "," & rodzajID & ",Null,Date(),'DoWykonania')"
         oczVar = DMax("ExpID", "OczekiwaneBadanie", "PartiaID=" & partiaID & " AND PlanID=" & planID)
     End If
@@ -134,7 +134,7 @@ Public Sub Przyklad_Wyniki_20()
 
     ' Powiazanie badania z oczekiwanym
     If oczID <> 0 Then
-        ExecSQL "UPDATE OczekiwaneBadanie SET BadanieID=" & badID2 & ", [Status]='Zrealizowane' WHERE ExpID=" & oczID
+        ExecSQL "UPDATE OczekiwaneBadanie SET BadanieID=" & badID2 & ", Status='Zrealizowane' WHERE ExpID=" & oczID
     End If
 
     MsgBox "Dodano przykladowe badania i wyniki.", vbInformation

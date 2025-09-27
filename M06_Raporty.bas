@@ -211,7 +211,7 @@ Private Sub KonfigurujRaportNCR(rpt As Report)
     DodajKolumne rpt, "BadanieID", "Badanie", 2000, 900
     DodajKolumne rpt, "DataZgloszenia", "Data zgl.", 2900, 1200
     DodajKolumne rpt, "Klasyfikacja", "Klasyfikacja", 4200, 1500
-    DodajKolumne rpt, "[Status]", "[Status]", 5800, 1200
+    DodajKolumne rpt, "Status", "Status", 5800, 1200
     DodajKolumne rpt, "Termin", "Termin", 7100, 1200
 
     DoCmd.Save acReport, rpt.Name
@@ -236,13 +236,7 @@ End Sub
 Private Sub DodajKolumne(rpt As Report, ControlSource As String, Caption As String, LeftPos As Long, Szerokosc As Long)
     Dim txt As Control
     Set txt = CreateReportControl(rpt.Name, acTextBox, acDetail, , ControlSource, LeftPos, 60, Szerokosc, 260)
-
-    Dim ctrlName As String
-    ctrlName = Replace(ControlSource, " ", "")
-    ctrlName = Replace(ctrlName, "[", "")
-    ctrlName = Replace(ctrlName, "]", "")
-    txt.Name = "txt" & ctrlName
-
+    txt.Name = "txt" & Replace(ControlSource, " ", "")
     If StrComp(ControlSource, "Spelnia", vbTextCompare) = 0 Then
         txt.Format = "Yes/No"
     ElseIf InStr(1, ControlSource, "Data", vbTextCompare) > 0 Then
@@ -251,12 +245,7 @@ Private Sub DodajKolumne(rpt As Report, ControlSource As String, Caption As Stri
 
     Dim lbl As Control
     Set lbl = CreateReportControl(rpt.Name, acLabel, acPageHeader, , Caption, LeftPos, 20, Szerokosc, 260)
-
-    Dim lblName As String
-    lblName = Replace(ControlSource, " ", "")
-    lblName = Replace(lblName, "[", "")
-    lblName = Replace(lblName, "]", "")
-    lbl.Name = "lbl" & lblName
+    lbl.Name = "lbl" & Replace(ControlSource, " ", "")
 End Sub
 
 Private Sub DodajNaglowekZTytulem(rpt As Report, Tytul As String)

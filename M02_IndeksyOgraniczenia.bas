@@ -2,14 +2,14 @@ Attribute VB_Name = "M02_IndeksyOgraniczenia"
 Option Compare Database
 Option Explicit
 
-' M02: Indeksy, unikalnoœci i relacje (FK) z ON UPDATE CASCADE; ON DELETE CASCADE ograniczone
+' M02: Indeksy, unikalnoÅ›ci i relacje (FK) z nazwami oraz ON DELETE CASCADE ograniczone
 
 Private Sub ExecSQL(ByVal s As String)
     On Error GoTo ErrH
     CurrentDb.Execute s, dbFailOnError
     Exit Sub
 ErrH:
-    MsgBox "B³¹d SQL: " & Err.Number & " - " & Err.Description & vbCrLf & Left$(s, 1024), vbExclamation, "ExecSQL(M02)"
+    MsgBox "BÅ‚Ä…d SQL: " & Err.Number & " - " & Err.Description & vbCrLf & Left$(s, 1024), vbExclamation, "ExecSQL(M02)"
 End Sub
 
 Private Function IndexExists(tbl As String, idx As String) As Boolean
@@ -29,8 +29,7 @@ End Sub
 Public Sub UtworzIndeksyIRelacje()
     On Error GoTo ErrH
 
-    '================ Unikalnoœci (sekcja 6) ================
-    'Najpierw usuñ potencjalne istniej¹ce
+    '================ UnikalnoÅ›ci (sekcja 6) ================
     DropIndexIfExists "Specyfikacje", "UQ_Spec_Kod"
     ExecSQL "CREATE UNIQUE INDEX UQ_Spec_Kod ON Specyfikacje(Kod)"
 
@@ -55,13 +54,11 @@ Public Sub UtworzIndeksyIRelacje()
     DropIndexIfExists "WynikiBadania", "UQ_Wyn_BadParamProb"
     ExecSQL "CREATE UNIQUE INDEX UQ_Wyn_BadParamProb ON WynikiBadania(BadanieID, ParametrID, NrProbki)"
 
-    'OczekiwaneBadanie: PK ju¿ jest, dodatkowe indeksy:
     DropIndexIfExists "OczekiwaneBadanie", "IX_Exp_Partia"
     ExecSQL "CREATE INDEX IX_Exp_Partia ON OczekiwaneBadanie(PartiaID)"
     DropIndexIfExists "OczekiwaneBadanie", "IX_Exp_Badanie"
     ExecSQL "CREATE INDEX IX_Exp_Badanie ON OczekiwaneBadanie(BadanieID)"
 
-    'Dodatkowe indeksy wydajnoœci:
     DropIndexIfExists "Lokalizacje", "IX_Lok_KM"
     ExecSQL "CREATE INDEX IX_Lok_KM ON Lokalizacje(KM_Start_m, KM_End_m)"
     DropIndexIfExists "Sita", "IX_Sita_Kolejnosc"
@@ -71,7 +68,7 @@ Public Sub UtworzIndeksyIRelacje()
     DropIndexIfExists "Badania", "IX_Badania_Data"
     ExecSQL "CREATE INDEX IX_Badania_Data ON Badania(DataBadania)"
 
-    'Indeksy na wszystkich FK – utworz¹ siê po relacjach, ale jawnie dodajemy
+    'Indeksy na wszystkich FK
     Dim fkIdx As String, fkList As String
     fkList = "WarstwaSpecDefault.WarstwaID|WarstwaSpecDefault.SpecyfikacjaID|" & _
              "ObiektWarstwaSpec.ObiektID|ObiektWarstwaSpec.WarstwaID|ObiektWarstwaSpec.SpecyfikacjaID|" & _
@@ -96,76 +93,95 @@ Public Sub UtworzIndeksyIRelacje()
         ExecSQL "CREATE INDEX " & fkIdx & " ON [" & tbl & "](" & col & ")"
     Next
 
-    '================ Relacje (FK) ================
-    'Uwaga: ON DELETE CASCADE tylko w uzgodnionych miejscach
+    '================ Relacje z nazwami (FK) przez DAO ================
+    Dim db As DAO.Database
+    Dim rel As DAO.Relation
+    Dim fld As DAO.Field
+    Set db = CurrentDb
 
-    'S³owniki
-    ExecSQL "ALTER TABLE WarstwaSpecDefault ADD CONSTRAINT FK_WSD_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE WarstwaSpecDefault ADD CONSTRAINT FK_WSD_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
+    ' Helper: FK Add - relacja z nazwÄ…, z CASCADE, bez CASCADE
+    ' relName, tbl, col, refTbl, refCol, deleteCascade
+    AddFK "FK_WSD_Warstwa", "WarstwaSpecDefault", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_WSD_Spec", "WarstwaSpecDefault", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
 
-    ExecSQL "ALTER TABLE ObiektWarstwaSpec ADD CONSTRAINT FK_OWS_Obiekt FOREIGN KEY (ObiektID) REFERENCES Obiekty(ObiektID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE ObiektWarstwaSpec ADD CONSTRAINT FK_OWS_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE ObiektWarstwaSpec ADD CONSTRAINT FK_OWS_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
+    AddFK "FK_OWS_Obiekt", "ObiektWarstwaSpec", "ObiektID", "Obiekty", "ObiektID", False
+    AddFK "FK_OWS_Warstwa", "ObiektWarstwaSpec", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_OWS_Spec", "ObiektWarstwaSpec", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
 
-    ExecSQL "ALTER TABLE WarstwaMaterial ADD CONSTRAINT FK_WM_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE WarstwaMaterial ADD CONSTRAINT FK_WM_Material FOREIGN KEY (MaterialID) REFERENCES Materialy(MaterialID) ON UPDATE CASCADE"
+    AddFK "FK_WM_Warstwa", "WarstwaMaterial", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_WM_Material", "WarstwaMaterial", "MaterialID", "Materialy", "MaterialID", False
 
-    ExecSQL "ALTER TABLE ReceptyMieszanek ADD CONSTRAINT FK_Rec_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE ReceptyMieszanek ADD CONSTRAINT FK_Rec_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE ReceptyMieszanek ADD CONSTRAINT FK_Rec_Mat FOREIGN KEY (MaterialID) REFERENCES Materialy(MaterialID) ON UPDATE CASCADE"
+    AddFK "FK_Rec_Warstwa", "ReceptyMieszanek", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_Rec_Spec", "ReceptyMieszanek", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
+    AddFK "FK_Rec_Mat", "ReceptyMieszanek", "MaterialID", "Materialy", "MaterialID", False
 
-    ExecSQL "ALTER TABLE Lokalizacje ADD CONSTRAINT FK_Lok_Obiekt FOREIGN KEY (ObiektID) REFERENCES Obiekty(ObiektID) ON UPDATE CASCADE"
+    AddFK "FK_Lok_Obiekt", "Lokalizacje", "ObiektID", "Obiekty", "ObiektID", False
 
-    ExecSQL "ALTER TABLE WymaganiaParametru ADD CONSTRAINT FK_Wym_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE WymaganiaParametru ADD CONSTRAINT FK_Wym_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE WymaganiaParametru ADD CONSTRAINT FK_Wym_Param FOREIGN KEY (ParametrID) REFERENCES ParametryJakosci(ParametrID) ON UPDATE CASCADE"
+    AddFK "FK_Wym_Spec", "WymaganiaParametru", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
+    AddFK "FK_Wym_Warstwa", "WymaganiaParametru", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_Wym_Param", "WymaganiaParametru", "ParametrID", "ParametryJakosci", "ParametrID", False
 
-    ExecSQL "ALTER TABLE UziarnienieWymaganie ADD CONSTRAINT FK_UWym_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE UziarnienieWymaganie ADD CONSTRAINT FK_UWym_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE UziarnienieWymaganie ADD CONSTRAINT FK_UWym_Sito FOREIGN KEY (SitoID) REFERENCES Sita(SitoID) ON UPDATE CASCADE"
+    AddFK "FK_UWym_Spec", "UziarnienieWymaganie", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
+    AddFK "FK_UWym_Warstwa", "UziarnienieWymaganie", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_UWym_Sito", "UziarnienieWymaganie", "SitoID", "Sita", "SitoID", False
 
-    'Partie/Plan/Oczekiwane
-    ExecSQL "ALTER TABLE Partie ADD CONSTRAINT FK_Partie_Obiekt FOREIGN KEY (ObiektID) REFERENCES Obiekty(ObiektID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Partie ADD CONSTRAINT FK_Partie_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Partie ADD CONSTRAINT FK_Partie_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
+    AddFK "FK_Partie_Obiekt", "Partie", "ObiektID", "Obiekty", "ObiektID", False
+    AddFK "FK_Partie_Warstwa", "Partie", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_Partie_Spec", "Partie", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
 
-    ExecSQL "ALTER TABLE PlanPoboru ADD CONSTRAINT FK_Plan_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE PlanPoboru ADD CONSTRAINT FK_Plan_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE PlanPoboru ADD CONSTRAINT FK_Plan_Rodzaj FOREIGN KEY (RodzajBadaniaID) REFERENCES RodzajeBadania(RodzajBadaniaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE PlanPoboru ADD CONSTRAINT FK_Plan_Param FOREIGN KEY (ParametrID) REFERENCES ParametryJakosci(ParametrID) ON UPDATE CASCADE"
+    AddFK "FK_Plan_Warstwa", "PlanPoboru", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_Plan_Spec", "PlanPoboru", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
+    AddFK "FK_Plan_Rodzaj", "PlanPoboru", "RodzajBadaniaID", "RodzajeBadania", "RodzajBadaniaID", False
+    AddFK "FK_Plan_Param", "PlanPoboru", "ParametrID", "ParametryJakosci", "ParametrID", False
 
-    ExecSQL "ALTER TABLE OczekiwaneBadanie ADD CONSTRAINT FK_Exp_Partia FOREIGN KEY (PartiaID) REFERENCES Partie(PartiaID) ON UPDATE CASCADE ON DELETE CASCADE"
-    ExecSQL "ALTER TABLE OczekiwaneBadanie ADD CONSTRAINT FK_Exp_Plan FOREIGN KEY (PlanID) REFERENCES PlanPoboru(PlanID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE OczekiwaneBadanie ADD CONSTRAINT FK_Exp_Rodzaj FOREIGN KEY (RodzajBadaniaID) REFERENCES RodzajeBadania(RodzajBadaniaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE OczekiwaneBadanie ADD CONSTRAINT FK_Exp_Param FOREIGN KEY (ParametrID) REFERENCES ParametryJakosci(ParametrID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE OczekiwaneBadanie ADD CONSTRAINT FK_Exp_Badanie FOREIGN KEY (BadanieID) REFERENCES Badania(BadanieID) ON UPDATE CASCADE"
+    AddFK "FK_Exp_Partia", "OczekiwaneBadanie", "PartiaID", "Partie", "PartiaID", True
+    AddFK "FK_Exp_Plan", "OczekiwaneBadanie", "PlanID", "PlanPoboru", "PlanID", False
+    AddFK "FK_Exp_Rodzaj", "OczekiwaneBadanie", "RodzajBadaniaID", "RodzajeBadania", "RodzajBadaniaID", False
+    AddFK "FK_Exp_Param", "OczekiwaneBadanie", "ParametrID", "ParametryJakosci", "ParametrID", False
+    AddFK "FK_Exp_Badanie", "OczekiwaneBadanie", "BadanieID", "Badania", "BadanieID", False
 
-    'Badania / Wyniki / Uziarnienie
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Obiekt FOREIGN KEY (ObiektID) REFERENCES Obiekty(ObiektID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Lok FOREIGN KEY (LokalizacjaID) REFERENCES Lokalizacje(LokalizacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Warstwa FOREIGN KEY (WarstwaID) REFERENCES Warstwy(WarstwaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Spec FOREIGN KEY (SpecyfikacjaID) REFERENCES Specyfikacje(SpecyfikacjaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Mat FOREIGN KEY (MaterialID) REFERENCES Materialy(MaterialID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Rec FOREIGN KEY (ReceptaID) REFERENCES ReceptyMieszanek(ReceptaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Partia FOREIGN KEY (PartiaID) REFERENCES Partie(PartiaID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Badania ADD CONSTRAINT FK_Bad_Rodzaj FOREIGN KEY (RodzajBadaniaID) REFERENCES RodzajeBadania(RodzajBadaniaID) ON UPDATE CASCADE"
+    AddFK "FK_Bad_Obiekt", "Badania", "ObiektID", "Obiekty", "ObiektID", False
+    AddFK "FK_Bad_Lok", "Badania", "LokalizacjaID", "Lokalizacje", "LokalizacjaID", False
+    AddFK "FK_Bad_Warstwa", "Badania", "WarstwaID", "Warstwy", "WarstwaID", False
+    AddFK "FK_Bad_Spec", "Badania", "SpecyfikacjaID", "Specyfikacje", "SpecyfikacjaID", False
+    AddFK "FK_Bad_Mat", "Badania", "MaterialID", "Materialy", "MaterialID", False
+    AddFK "FK_Bad_Rec", "Badania", "ReceptaID", "ReceptyMieszanek", "ReceptaID", False
+    AddFK "FK_Bad_Partia", "Badania", "PartiaID", "Partie", "PartiaID", False
+    AddFK "FK_Bad_Rodzaj", "Badania", "RodzajBadaniaID", "RodzajeBadania", "RodzajBadaniaID", False
 
-    ExecSQL "ALTER TABLE WynikiBadania ADD CONSTRAINT FK_Wyn_Bad FOREIGN KEY (BadanieID) REFERENCES Badania(BadanieID) ON UPDATE CASCADE ON DELETE CASCADE"
-    ExecSQL "ALTER TABLE WynikiBadania ADD CONSTRAINT FK_Wyn_Param FOREIGN KEY (ParametrID) REFERENCES ParametryJakosci(ParametrID) ON UPDATE CASCADE"
+    AddFK "FK_Wyn_Bad", "WynikiBadania", "BadanieID", "Badania", "BadanieID", True
+    AddFK "FK_Wyn_Param", "WynikiBadania", "ParametrID", "ParametryJakosci", "ParametrID", False
 
-    ExecSQL "ALTER TABLE UziarnienieWynik ADD CONSTRAINT FK_UWyn_Bad FOREIGN KEY (BadanieID) REFERENCES Badania(BadanieID) ON UPDATE CASCADE ON DELETE CASCADE"
-    ExecSQL "ALTER TABLE UziarnienieWynik ADD CONSTRAINT FK_UWyn_Sito FOREIGN KEY (SitoID) REFERENCES Sita(SitoID) ON UPDATE CASCADE"
+    AddFK "FK_UWyn_Bad", "UziarnienieWynik", "BadanieID", "Badania", "BadanieID", True
+    AddFK "FK_UWyn_Sito", "UziarnienieWynik", "SitoID", "Sita", "SitoID", False
 
-    'Priorytet 2
-    ExecSQL "ALTER TABLE SprzetPomiarowy ADD CONSTRAINT FK_Sprz_Lab FOREIGN KEY (LaboratoriumID) REFERENCES Laboratoria(LaboratoriumID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Personel ADD CONSTRAINT FK_Os_Lab FOREIGN KEY (LaboratoriumID) REFERENCES Laboratoria(LaboratoriumID) ON UPDATE CASCADE"
-    ExecSQL "ALTER TABLE Probki ADD CONSTRAINT FK_Prob_Bad FOREIGN KEY (BadanieID) REFERENCES Badania(BadanieID) ON UPDATE CASCADE ON DELETE CASCADE"
-    ExecSQL "ALTER TABLE ChainOfCustody ADD CONSTRAINT FK_CoC_Prob FOREIGN KEY (ProbkaID) REFERENCES Probki(ProbkaID) ON UPDATE CASCADE ON DELETE CASCADE"
-
-    'Walidacja TypKryterium – w VBA (Access DDL CHECK nieobs³ugiwane)
+    AddFK "FK_Sprz_Lab", "SprzetPomiarowy", "LaboratoriumID", "Laboratoria", "LaboratoriumID", False
+    AddFK "FK_Os_Lab", "Personel", "LaboratoriumID", "Laboratoria", "LaboratoriumID", False
+    AddFK "FK_Prob_Bad", "Probki", "BadanieID", "Badania", "BadanieID", True
+    AddFK "FK_CoC_Prob", "ChainOfCustody", "ProbkaID", "Probki", "ProbkaID", True
 
     MsgBox "M02: Indeksy i relacje utworzone.", vbInformation
     Exit Sub
 ErrH:
-    MsgBox "M02.UtworzIndeksyIRelacje – b³¹d " & Err.Number & ": " & Err.Description, vbExclamation
+    MsgBox "M02.UtworzIndeksyIRelacje â€“ bÅ‚Ä…d " & Err.Number & ": " & Err.Description, vbExclamation
+End Sub
+
+' Helper: Tworzenie relacji FK przez DAO z nazwÄ… i opcjÄ… ON DELETE CASCADE
+Private Sub AddFK(relName As String, tbl As String, col As String, refTbl As String, refCol As String, deleteCascade As Boolean)
+    On Error Resume Next
+    Dim db As DAO.Database
+    Dim rel As DAO.Relation
+    Dim fld As DAO.Field
+    Set db = CurrentDb
+    ' UsuÅ„ starÄ… relacjÄ™ jeÅ›li istnieje
+    For Each rel In db.Relations
+        If rel.Name = relName Then db.Relations.Delete relName: Exit For
+    Next
+    Set rel = db.CreateRelation(relName, tbl, refTbl, IIf(deleteCascade, dbRelationDeleteCascade, 0))
+    Set fld = rel.CreateField(col)
+    fld.ForeignName = refCol
+    rel.Fields.Append fld
+    db.Relations.Append rel
+    Set rel = Nothing
+    Set fld = Nothing
 End Sub
