@@ -117,7 +117,7 @@ Public Sub UtworzKwerendy()
     '------------------------------------------------------
     DropQueryIfExists "Q_Badania_DoWykonania"
     Set q = CurrentDb.CreateQueryDef("Q_Badania_DoWykonania", _
-        "SELECT * FROM OczekiwaneBadanie WHERE Status In('DoWykonania','PoTermin')")
+        "SELECT * FROM OczekiwaneBadanie WHERE [Status] In('DoWykonania','PoTermin')")
     
     Exit Sub
 ErrH:

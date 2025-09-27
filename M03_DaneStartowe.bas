@@ -77,93 +77,94 @@ Public Sub ZaladujDaneStartowe()
     '------------------------------------------------------
     ' Specyfikacje (pe³na lista z sekcji 13)
     '------------------------------------------------------
-    Dim specyfikacje As Variant
-    specyfikacje = Split("D-M-00.00.00;Wymagania Ogólne|" & _
-        "D-01.00.00;ROBOTY PRZYGOTOWAWCZE|" & _
-        "D-01.01.01;Odtworzenie trasy i punktów wysokoœciowych|" & _
-        "D-01.02.01;Usuniêcie drzew, zagajników i krzewów|" & _
-        "D-01.02.01A;Zabezpieczenie istniej¹cych drzew i krzewów na okres wykonywania robót|" & _
-        "D-01.02.02;Zdjêcie warstwy humusu|" & _
-        "D-01.02.03;Wyburzenie obiektów budowlanych|" & _
-        "D-01.02.04;Rozbiórki elementów dróg i ulic|" & _
-        "D-02.00.01;Roboty ziemne. Wymagania ogólne|" & _
-        "D-02.01.01;Roboty ziemne. Wykonanie wykopów|" & _
-        "D-02.01.01A;Platformy robocze dla ciê¿kiego sprzêtu budowlanego|" & _
-        "D-02.01.01B;Wzmocnienie pod³o¿a gruntowego. Wymiana gruntów|" & _
-        "D-02.01.01C;Wzmocnienie pod³o¿a gruntowego. Materace geosyntetyczne|" & _
-        "D-02.01.01D;Wzmocnienie pod³o¿a gruntowego. Metoda drenów pionowych i nasypu przeci¹¿aj¹cego|" & _
-        "D-02.01.01E;Wzmocnienie pod³o¿a gruntowego. Kolumny DSM|" & _
-        "D-02.01.01F;Wzmocnienie pod³o¿a gruntowego. Metoda iniekcji strumieniowej Jet Grouting|" & _
-        "D-02.01.01G;Wzmocnienie pod³o¿a gruntowego. Kolumny ¿wirowe|" & _
-        "D-02.01.01H;Wzmocnienie pod³o¿a gruntowego. Kolumny betonowo-¿wirowe|" & _
-        "D-02.01.01I;Wzmocnienie pod³o¿a gruntowego. Prefabrykowane pale ¿elbetowe|" & _
-        "D-02.01.01J;Wzmocnienie pod³o¿a gruntowego. Pale wiercone typu CFA|" & _
-        "D-02.03.01;Roboty ziemne. Wykonanie nasypów|" & _
-        "D-03.00.00;ODWODNIENIE KORPUSU DROGOWEGO|" & _
-        "D-03.01.01;Przepusty pod koron¹ drogi|" & _
-        "D-03.03.01;S¹czki pod³u¿ne|" & _
-        "D-04.00.00;PODBUDOWY|" & _
-        "D-04.02.01;Warstwa odcinaj¹ca|" & _
-        "D-04.02.02;Warstwa mrozoochronna/ods¹czaj¹ca|" & _
-        "D-04.03.01;Oczyszczenie i skropienie warstw konstrukcyjnych|" & _
-        "D-04.04.02;Podbudowa pomocnicza i zasadnicza z mieszanki niezwi¹zanej|" & _
-        "D-04.05.00;Warstwa ulepszonego pod³o¿a z gruntu stabilizowanego spoiwem hydraulicznym lub wapnem|" & _
-        "D-04.05.01;Podbudowa i warstwa mrozoochronna z mieszanki zwi¹zanej cementem|" & _
-        "D-04.07.01;Warstwa podbudowy z AC|" & _
-        "D-04.10.01;Podbudowa z mieszanki mineralno-cementowo-emulsyjnej|" & _
-        "D-05.00.00;NAWIERZCHNIE|" & _
-        "D-05.02.01;Nawierzchnia z kruszywa niezwi¹zanego|" & _
-        "D-05.03.01;Nawierzchnia z kostki kamiennej|" & _
-        "D-05.03.05A;Nawierzchnia z betonu asfaltowego warstwa wi¹¿¹ca|" & _
-        "D-05.03.05B;Nawierzchnia z betonu asfaltowego warstwa œcieralna|" & _
-        "D-05.03.05C;Warstwa podbudowy i wi¹¿¹ca z WMS|" & _
-        "D-05.03.13;Nawierzchnia z mieszanki mastyksowo-grysowej (SMA)|" & _
-        "D-05.03.23;Nawierzchnia i chodniki z kostki brukowej|" & _
-        "D-06.00.00;ROBOTY WYKOÑCZENIOWE|" & _
-        "D-06.01.01A;Umocnienie skarp, rowów i pasa dziel¹cego przez humusowanie i obsiew|" & _
-        "D-06.01.01B;Umocnienie skarp i rowów elementami prefabrykowanymi|" & _
-        "D-06.02.01;Przepusty pod zjazdami|" & _
-        "D-06.03.01;Umocnienie poboczy|" & _
-        "D-07.00.00;URZ¥DZENIA BEZPIECZEÑSTWA RUCHU|" & _
-        "D-07.01.01;Oznakowanie poziome|" & _
-        "D-07.02.01;Oznakowanie pionowe|" & _
-        "D-07.02.02;S³upki prowadz¹ce i krawêdziowe oraz znaki kilometrowe i hektometrowe|" & _
-        "D-07.05.01;Bariery ochronne|" & _
-        "D-07.06.01;Ogrodzenia dróg|" & _
-        "D-07.06.02;Urz¹dzenia zabezpieczaj¹ce ruch pieszy i rowerowy|" & _
-        "D-07.08.01;Ekrany akustyczne. Ekrany przeciwolœnieniowe. Ekrany ekologiczne|" & _
-        "D-07.09.01;Drogowy ekran przeciwolœnieniowy|" & _
-        "D-08.00.00;ELEMENTY ULIC|" & _
-        "D-08.01.01;Krawê¿niki betonowe|" & _
-        "D-08.01.02;Krawê¿niki kamienne|" & _
-        "D-08.03.01;Obrze¿a betonowe|" & _
-        "D-08.05.01;Œcieki|" & _
-        "D-09.00.00;ZIELEÑ DROGOWA|" & _
-        "D-09.01.01;Zieleñ drogowa|" & _
-        "M-11.00.00;Fundamentowanie|" & _
-        "M-12.00.00;Zbrojenie|" & _
-        "M-13.00.00;Beton|" & _
-        "M-14.00.00;Konstrukcje stalowe|" & _
-        "M-15.00.00;Izolacje i nawierzchnie|" & _
-        "M-16.00.00;Odwodnienie|" & _
-        "M-17.00.00;£o¿yska|" & _
-        "M-18.00.00;Urz¹dzenia dylatacyjne|" & _
-        "M-19.00.00;Elementy zabezpieczaj¹ce|" & _
-        "M-20.01.00;Inne roboty mostowe. Roboty przyobiektowe|" & _
-        "M-20.02.00;Inne roboty mostowe. Roboty na obiekcie|" & _
-        "U-01.03.01;Przebudowa napowietrznych linii elektroenergetycznych|" & _
-        "U-01.03.02;Przebudowa kablowych linii energetycznych|" & _
-        "U-01.03.03;Przebudowa napowietrznych linii telekomunikacyjnych|" & _
-        "U-01.03.04;Przebudowa kablowych linii telekomunikacyjnych|" & _
-        "U-01.03.05;Przebudowa i budowa podziemnych sieci wodoci¹gowych|" & _
-        "U-01.03.06;Przebudowa podziemnych sieci gazowych|" & _
-        "U-01.03.07;Przebudowa urz¹dzeñ melioracyjnych|" & _
-        "U-03.02.01;Kanalizacja deszczowa i sanitarna|" & _
-        "U-03.05.01b;Zbiorniki retencyjne i retencyjno-infiltracyjne|" & _
-        "U-05.03.01;Kanalizacja teletechniczna|" & _
-        "U-07.07.01;Oœwietlenie drogowe|" & _
-        "U-10.15.01;£¹cznoœæ drogi ekspresowej", "|")
-    Dim s As Integer
+        Dim specSource As String
+    specSource = "D-M-00.00.00;Wymagania Ogólne"
+    specSource = specSource & "|D-01.00.00;ROBOTY PRZYGOTOWAWCZE"
+    specSource = specSource & "|D-01.01.01;Odtworzenie trasy i punktów wysokoœciowych"
+    specSource = specSource & "|D-01.02.01;Usuniêcie drzew, zagajników i krzewów"
+    specSource = specSource & "|D-01.02.01A;Zabezpieczenie istniej¹cych drzew i krzewów na okres wykonywania robót"
+    specSource = specSource & "|D-01.02.02;Zdjêcie warstwy humusu"
+    specSource = specSource & "|D-01.02.03;Wyburzenie obiektów budowlanych"
+    specSource = specSource & "|D-01.02.04;Rozbiórki elementów dróg i ulic"
+    specSource = specSource & "|D-02.00.01;Roboty ziemne. Wymagania ogólne"
+    specSource = specSource & "|D-02.01.01;Roboty ziemne. Wykonanie wykopów"
+    specSource = specSource & "|D-02.01.01A;Platformy robocze dla ciê¿kiego sprzêtu budowlanego"
+    specSource = specSource & "|D-02.01.01B;Wzmocnienie pod³o¿a gruntowego. Wymiana gruntów"
+    specSource = specSource & "|D-02.01.01C;Wzmocnienie pod³o¿a gruntowego. Materace geosyntetyczne"
+    specSource = specSource & "|D-02.01.01D;Wzmocnienie pod³o¿a gruntowego. Metoda drenów pionowych i nasypu przeci¹¿aj¹cego"
+    specSource = specSource & "|D-02.01.01E;Wzmocnienie pod³o¿a gruntowego. Kolumny DSM"
+    specSource = specSource & "|D-02.01.01F;Wzmocnienie pod³o¿a gruntowego. Metoda iniekcji strumieniowej Jet Grouting"
+    specSource = specSource & "|D-02.01.01G;Wzmocnienie pod³o¿a gruntowego. Kolumny ¿wirowe"
+    specSource = specSource & "|D-02.01.01H;Wzmocnienie pod³o¿a gruntowego. Kolumny betonowo-¿wirowe"
+    specSource = specSource & "|D-02.01.01I;Wzmocnienie pod³o¿a gruntowego. Prefabrykowane pale ¿elbetowe"
+    specSource = specSource & "|D-02.01.01J;Wzmocnienie pod³o¿a gruntowego. Pale wiercone typu CFA"
+    specSource = specSource & "|D-02.03.01;Roboty ziemne. Wykonanie nasypów"
+    specSource = specSource & "|D-03.00.00;ODWODNIENIE KORPUSU DROGOWEGO"
+    specSource = specSource & "|D-03.01.01;Przepusty pod koron¹ drogi"
+    specSource = specSource & "|D-03.03.01;S¹czki pod³u¿ne"
+    specSource = specSource & "|D-04.00.00;PODBUDOWY"
+    specSource = specSource & "|D-04.02.01;Warstwa odcinaj¹ca"
+    specSource = specSource & "|D-04.02.02;Warstwa mrozoochronna/ods¹czaj¹ca"
+    specSource = specSource & "|D-04.03.01;Oczyszczenie i skropienie warstw konstrukcyjnych"
+    specSource = specSource & "|D-04.04.02;Podbudowa pomocnicza i zasadnicza z mieszanki niezwi¹zanej"
+    specSource = specSource & "|D-04.05.00;Warstwa ulepszonego pod³o¿a z gruntu stabilizowanego spoiwem hydraulicznym lub wapnem"
+    specSource = specSource & "|D-04.05.01;Podbudowa i warstwa mrozoochronna z mieszanki zwi¹zanej cementem"
+    specSource = specSource & "|D-04.07.01;Warstwa podbudowy z AC"
+    specSource = specSource & "|D-04.10.01;Podbudowa z mieszanki mineralno-cementowo-emulsyjnej"
+    specSource = specSource & "|D-05.00.00;NAWIERZCHNIE"
+    specSource = specSource & "|D-05.02.01;Nawierzchnia z kruszywa niezwi¹zanego"
+    specSource = specSource & "|D-05.03.01;Nawierzchnia z kostki kamiennej"
+    specSource = specSource & "|D-05.03.05A;Nawierzchnia z betonu asfaltowego warstwa wi¹¿¹ca"
+    specSource = specSource & "|D-05.03.05B;Nawierzchnia z betonu asfaltowego warstwa œcieralna"
+    specSource = specSource & "|D-05.03.05C;Warstwa podbudowy i wi¹¿¹ca z WMS"
+    specSource = specSource & "|D-05.03.13;Nawierzchnia z mieszanki mastyksowo-grysowej (SMA)"
+    specSource = specSource & "|D-05.03.23;Nawierzchnia i chodniki z kostki brukowej"
+    specSource = specSource & "|D-06.00.00;ROBOTY WYKOÑCZENIOWE"
+    specSource = specSource & "|D-06.01.01A;Umocnienie skarp, rowów i pasa dziel¹cego przez humusowanie i obsiew"
+    specSource = specSource & "|D-06.01.01B;Umocnienie skarp i rowów elementami prefabrykowanymi"
+    specSource = specSource & "|D-06.02.01;Przepusty pod zjazdami"
+    specSource = specSource & "|D-06.03.01;Umocnienie poboczy"
+    specSource = specSource & "|D-07.00.00;URZ¥DZENIA BEZPIECZEÑSTWA RUCHU"
+    specSource = specSource & "|D-07.01.01;Oznakowanie poziome"
+    specSource = specSource & "|D-07.02.01;Oznakowanie pionowe"
+    specSource = specSource & "|D-07.02.02;S³upki prowadz¹ce i krawêdziowe oraz znaki kilometrowe i hektometrowe"
+    specSource = specSource & "|D-07.05.01;Bariery ochronne"
+    specSource = specSource & "|D-07.06.01;Ogrodzenia dróg"
+    specSource = specSource & "|D-07.06.02;Urz¹dzenia zabezpieczaj¹ce ruch pieszy i rowerowy"
+    specSource = specSource & "|D-07.08.01;Ekrany akustyczne. Ekrany przeciwolœnieniowe. Ekrany ekologiczne"
+    specSource = specSource & "|D-07.09.01;Drogowy ekran przeciwolœnieniowy"
+    specSource = specSource & "|D-08.00.00;ELEMENTY ULIC"
+    specSource = specSource & "|D-08.01.01;Krawê¿niki betonowe"
+    specSource = specSource & "|D-08.01.02;Krawê¿niki kamienne"
+    specSource = specSource & "|D-08.03.01;Obrze¿a betonowe"
+    specSource = specSource & "|D-08.05.01;Œcieki"
+    specSource = specSource & "|D-09.00.00;ZIELEÑ DROGOWA"
+    specSource = specSource & "|D-09.01.01;Zieleñ drogowa"
+    specSource = specSource & "|M-11.00.00;Fundamentowanie"
+    specSource = specSource & "|M-12.00.00;Zbrojenie"
+    specSource = specSource & "|M-13.00.00;Beton"
+    specSource = specSource & "|M-14.00.00;Konstrukcje stalowe"
+    specSource = specSource & "|M-15.00.00;Izolacje i nawierzchnie"
+    specSource = specSource & "|M-16.00.00;Odwodnienie"
+    specSource = specSource & "|M-17.00.00;£o¿yska"
+    specSource = specSource & "|M-18.00.00;Urz¹dzenia dylatacyjne"
+    specSource = specSource & "|M-19.00.00;Elementy zabezpieczaj¹ce"
+    specSource = specSource & "|M-20.01.00;Inne roboty mostowe. Roboty przyobiektowe"
+    specSource = specSource & "|M-20.02.00;Inne roboty mostowe. Roboty na obiekcie"
+    specSource = specSource & "|U-01.03.01;Przebudowa napowietrznych linii elektroenergetycznych"
+    specSource = specSource & "|U-01.03.02;Przebudowa kablowych linii energetycznych"
+    specSource = specSource & "|U-01.03.03;Przebudowa napowietrznych linii telekomunikacyjnych"
+    specSource = specSource & "|U-01.03.04;Przebudowa kablowych linii telekomunikacyjnych"
+    specSource = specSource & "|U-01.03.05;Przebudowa i budowa podziemnych sieci wodoci¹gowych"
+    specSource = specSource & "|U-01.03.06;Przebudowa podziemnych sieci gazowych"
+    specSource = specSource & "|U-01.03.07;Przebudowa urzdzeñ melioracyjnych"
+    specSource = specSource & "|U-03.02.01;Kanalizacja deszczowa i sanitarna"
+    specSource = specSource & "|U-03.05.01b;Zbiorniki retencyjne i retencyjno-infiltracyjne"
+    specSource = specSource & "|U-05.03.01;Kanalizacja teletechniczna"
+    specSource = specSource & "|U-07.07.01;Oœwietlenie drogowe"
+    specSource = specSource & "|U-10.15.01;£¹cznoœæ drogi ekspresowej"
+        specyfikacje = Split(specSource, "|")
+	Dim s As Integer
     For s = LBound(specyfikacje) To UBound(specyfikacje)
         Dim kv As Variant
         kv = Split(specyfikacje(s), ";")

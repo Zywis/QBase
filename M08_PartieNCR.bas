@@ -148,7 +148,7 @@ Public Sub GenerujOczekiwaneBadania(ByVal PartiaID As Long)
         istnieje = DCount("*", "OczekiwaneBadanie", "PartiaID=" & PartiaID & " AND PlanID=" & planID)
         
         For i = 1 To (req - istnieje)
-            ExecSQL "INSERT INTO OczekiwaneBadanie(PartiaID, PlanID, RodzajBadaniaID, ParametrID, Termin, Status) " & _
+            ExecSQL "INSERT INTO OczekiwaneBadanie(PartiaID, PlanID, RodzajBadaniaID, ParametrID, Termin, [Status]) " & _
                     "VALUES(" & PartiaID & "," & planID & "," & Nz(rodzajID, "Null") & "," & Nz(parametrID, "Null") & ",#" & Format$(termin, "yyyy-mm-dd") & "#,'DoWykonania')"
         Next i
         
@@ -174,18 +174,18 @@ ErrH:
     WorksheetCeil = 0
 End Function
 
-Public Sub AktualizujStatusOczekiwanych()
+Public Sub Aktualizuj[Status]Oczekiwanych()
     On Error GoTo ErrH
     ' Zrealizowane: ma BadanieID
-    ExecSQL "UPDATE OczekiwaneBadanie SET Status='Zrealizowane' WHERE BadanieID Is Not Null"
+    ExecSQL "UPDATE OczekiwaneBadanie SET [Status]='Zrealizowane' WHERE BadanieID Is Not Null"
     ' Po terminie: brak BadanieID i Termin < Date
-    ExecSQL "UPDATE OczekiwaneBadanie SET Status='PoTermin' WHERE BadanieID Is Null AND Termin<Date()"
+    ExecSQL "UPDATE OczekiwaneBadanie SET [Status]='PoTermin' WHERE BadanieID Is Null AND Termin<Date()"
     ' DoWykonania: brak BadanieID i Termin ? Date
-    ExecSQL "UPDATE OczekiwaneBadanie SET Status='DoWykonania' WHERE BadanieID Is Null AND Termin>=Date()"
-    MsgBox "Zaktualizowano statusy oczekiwanych badañ.", vbInformation
+    ExecSQL "UPDATE OczekiwaneBadanie SET [Status]='DoWykonania' WHERE BadanieID Is Null AND Termin>=Date()"
+    MsgBox "Zaktualizowano [Status]y oczekiwanych badañ.", vbInformation
     Exit Sub
 ErrH:
-    MsgBox "B³¹d AktualizujStatusOczekiwanych: " & Err.Description, vbCritical
+    MsgBox "B³¹d Aktualizuj[Status]Oczekiwanych: " & Err.Description, vbCritical
 End Sub
 
 Public Sub PokrycieBadan(ByVal PartiaID As Long)

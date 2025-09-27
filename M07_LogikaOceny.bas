@@ -266,7 +266,7 @@ ErrH:
     MsgBox "B³¹d WstawSitaDlaBadania: " & Err.Description, vbCritical
 End Sub
 
-Public Sub SelfTest_Kompletnosc() As Boolean
+Public Function SelfTest_Kompletnosc() As Boolean
     On Error GoTo ErrH
     Dim brak As String
     brak = ""
@@ -310,15 +310,16 @@ Public Sub SelfTest_Kompletnosc() As Boolean
     
     If Len(brak) = 0 Then
         MsgBox "SelfTest OK – kompletnoœæ potwierdzona.", vbInformation
-		SelfTest_Kompletnosc = True
-	Else
+        SelfTest_Kompletnosc = True
+    Else
         MsgBox "SelfTest – wykryto braki:" & vbCrLf & brak, vbExclamation
-		SelfTest_Kompletnosc = False
+        SelfTest_Kompletnosc = False
     End If
     Exit Function
 ErrH:
     MsgBox "B³¹d SelfTest_Kompletnosc: " & Err.Description, vbCritical
-End Sub
+    SelfTest_Kompletnosc = False
+End Function
 
 Private Sub SprawdzTabele(ByVal Nazwy As Variant, ByRef Braki As String)
     Dim i As Long
