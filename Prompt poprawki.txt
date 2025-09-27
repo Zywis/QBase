@@ -1,0 +1,440 @@
+Jesteś genialnym ekspertem MS Access 2016 i VBA. Na podstawie tego promptu wygenerowana została baza danych MS Access 2016 (.accdb) do rejestru i oceny badań jakości warstw konstrukcyjnych drogi z wieloma specyfikacjami, materiałami, receptami, wynikami badań, oraz modułem Partii/NCR, składająca się z 10 kompletnych modułów .bas (8 modułów do budowy bazy + 1 z przykładami wymagań + 1 z przykładami wyników) oraz Instrukcja uruchomienia. 
+Przeanalizuj kod wszystkich zamieszczonych modułów: przeanalizuj kompletnośći spójność i poprawność kodu, powiązania pomiędzy modułami,  kolejność generowania elementów, poprawność nazw tabel funkcji procedur formularzy kwerend raportów (Ambiguous name detected), długości linii (too many line continuations), wszystkie części kodu mające wpływna kompilację i działanie, moduły mają być w pełni idempotentne,wszystkie funkcjonalności z niniejszego prompta mają być w całości zachowane, w tym relacje między tabelami. Z modułów wyeliminuj logowanie błędów w tabeli LogZdarzen. Jeżeli wystąpią błędy lub pominięcia poinformuj o tym i wygeneruj nowe kompletne moduły zgodnie z określonymi tutaj zasadami. Generuj kolejno po dwa moduły, bez mojej ingerencji tylko z komunikatem o przejściu do kolejnych modułów.
+
+
+Wszystkie dane, nazwy, parametry i reguły są  w tym promptcie, w przypadku sprzeczności lub braku któregoś elementu pozyskaj wiedzę ze źródeł zewnętrznych. Przed rozpoczęciem generowania kodu, przeanalizuj wymagania zawarte w SEKCJACH 0 do 20. Zadaj pytania uzupełniające w celu kompletnego zrozumienia zadania i uzupełnienia wymagań. Zadaj pytania o potwierdzenie zastosowania wiedzy pozyskanej z zewnątrz i dopiero po uzyskaniu odpowiedzi rozpocznij generowanie kodu.
+
+
+SEKCJA 0 – FORMAT WYNIKU I ZAKRES WYJŚCIA
+1) Najpierw zwróć krótką sekcję: „Analiza sprzeczności i spójności” – wypunktuj wykryte sprzeczności i podaj zastosowane rozwiązania (zgodnie z sekcją 10).
+2) Następnie zwróć dokładnie 10 osobnych bloków code (w formacie .bas), po jednym na moduł, każdy z nagłówkiem: Attribute VB_Name = "NAZWA"
+   - M01_Schemat_Tabele
+   - M02_IndeksyOgraniczenia
+   - M03_DaneStartowe
+   - M04_Kwerendy
+   - M05_Formularze
+   - M06_Raporty
+   - M07_LogikaOceny
+   - M08_PartieNCR
+   - M09_PrzykladoweWymaganiaParametrow
+   - M10_PrzykladoweWynikiBadan
+3) Na końcu zwróć sekcję tekstową: „Instrukcja uruchomienia”.
+4) Język: polski (kod VBA – komentarze i nazwy obiektów/formularzy/raportów/kwerend po polsku).
+5) Każdy moduł musi być kompletny i kompilowalny: Option Compare Database, Option Explicit, obsługa błędów, brak niezadeklarowanych zmiennych (DAO 16.0).
+6) Nie używaj metody db.CreateRelation. Relacje i kaskady twórz DDL SQL: ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY ... ON UPDATE CASCADE ON DELETE CASCADE.
+7) Zapewnij funkcję Start_Build w M01, która wykona cały proces budowy w kolejności: M01→M02→M03→M04→M05→M06→M08→M09→M10, a następnie uruchomi test spójności (M07.SelfTest_Kompletnosc) i zasygnalizuje wynik w MsgBox.
+8) zastąp Array(...) bezpiecznym Split(...)
+9) Tworzenie Formularzy i Raportów ma być umieszczone w kodzie - niedopuszczalne jest tworzenie ręczne.
+10) Moduły zwróć jako kod możliwy do skopiowania i zapisania w plikach .bas
+
+SEKCJA 1 – BIBLIOTEKI I ZASADY KODU
+- Użyj referencji:
+  • Microsoft Office 16.0 Object Library
+  • Microsoft Office 16.0 Access database engine Object Library (DAO 16.0)
+- Nie używaj DAO 3.6 ani starszych. Nie używaj db.CreateRelation.
+- DDL FK z ON UPDATE CASCADE i selektywnie ON DELETE CASCADE (dla tabel zależnych typu wyniki, uziarnienia, pozycje planu, oczekiwane badania, itp.).
+- Wzorzec błędów: On Error GoTo ErrH; log do tabeli LogZdarzen przez M07.LogujZdarzenie; MsgBox dla użytkownika.
+- Wszystkie nazwy tabel, kwerend, formularzy, raportów i nagłówków użytkownika po polsku; stosuj czytelne Caption.
+- FE/BE: przewidziana separacja – w M08 przygotuj funkcję UtworzIZlinkujBE(SciezkaBE) tworzącą backend i linkującą tabele.
+
+SEKCJA 2 – REGUŁA NADRZĘDNOŚCI (sprzeczności 1–3)
+- Jeśli punkty 1–3 (formularze/tabele per specyfikacja) są sprzeczne z modelem ogólnym, obowiązuje model uogólniony: nie twórz tabel per spec; przechowuj wymagania/wyniki w tabelach ogólnych; formularze/raporty generuj dynamicznie (RecordSource filtrowany po SpecyfikacjaID/WarstwaID). Przyciski „Dodaj/Usuń/Zmień” edytują metadane (WymaganiaParametru, UziarnienieWymaganie).
+
+SEKCJA 3 – CEL I ZAKRES FUNKCJONALNY
+- Rejestrowanie badań jakości warstw drogowych (lokalizacja: obiekt, kilometraż; warstwa; specyfikacja).
+- Envelope uziarnienia (krzywe Min/Max) per (SpecyfikacjaID, WarstwaID).
+- Badania materiału:
+  • MMA: uziarnienie (krzywa), gęstość objętościowa (ρb), zawartość asfaltu (Pb), zawartość asfaltu rozpuszczalnego (Pb_sol).
+  • Nasypy: uziarnienie (krzywa), gęstość objętościowa (ρb), wilgotność optymalna (wopt).
+- Obsłuż różne materiały i różne receptury mieszanek per Warstwa+Specyfikacja.
+- Automatyczna ocena Spełnia/Nie spełnia parametrów i całej krzywej.
+- Priorytet 1: Partie/Loty, NCR/CAPA.
+- Priorytet 2: Sprzęt i kalibracje; Próbki i chain-of-custody; Laboratoria i personel.
+- Priorytet 3: Wersjonowanie spec/recept, role i audyt, integracje.
+
+SEKCJA 4 – STANDARDY DANYCH I OGÓLNE ZASADY
+- Kilometraż: w metrach (Long); prezentuj jako „km X+YYY”.
+- Jednostki parametrów: ρb [g/cm3], wopt [%], Pb [%], Pb_sol [%] (i pozostałe z listy w ParametryJakosci).
+- Envelope uziarnienia łącz po (SpecyfikacjaID, WarstwaID, SitoID).
+- Parametry pojedyncze oceniaj po (SpecyfikacjaID, WarstwaID, ParametrID).
+- Indeksy na wszystkich FK; unikalności wg sekcji 6.
+- Integralność referencyjna i kaskadowa aktualizacja kluczy.
+- Przygotuj bazę pod rozdzielenie na FE/BE.
+
+SEKCJA 5 – MODEL DANYCH (TABELI I KLUCZE)
+Tworzone w M01 (DDL). Wszystkie PK typu AUTONUMER (Long, AutoNumber). Wymienione pola są kluczowe; dodaj typy: TEXT (z sensowną długością), LONG (Long), DOUBLE (Double), DATE (Date/Time), YESNO (Yes/No), MEMO (LongText), ATTACHMENT.
+
+Słowniki/konfiguracja:
+- Specyfikacje: SpecyfikacjaID (PK), Kod (TEXT, unique), Nazwa (TEXT), Wersja (TEXT), DataSpec (DATE), Uwagi (MEMO).
+- Warstwy: WarstwaID (PK), KodWarstwy (TEXT), NazwaWarstwy (TEXT), TypWarstwy (TEXT – np. MMA/Nasyp/KNN/Stabilizacja/…), MaterialDomyslny (LONG, FK null), Uwagi (MEMO).
+- WarstwaSpecDefault: WSDID (PK), WarstwaID (FK), SpecyfikacjaID (FK). Unikalność: WarstwaID.
+- ObiektWarstwaSpec: OWSID (PK), ObiektID (FK), WarstwaID (FK), SpecyfikacjaID (FK). Unikalność: (ObiektID, WarstwaID).
+- Materialy: MaterialID (PK), NazwaMaterialu (TEXT), TypMaterialu (TEXT), Producent (TEXT), Zrodlo (TEXT), Uwagi (MEMO).
+- WarstwaMaterial: WMID (PK), WarstwaID (FK), MaterialID (FK). Unikalność: (WarstwaID, MaterialID).
+- ReceptyMieszanek: ReceptaID (PK), WarstwaID (FK), SpecyfikacjaID (FK), MaterialID (FK, null), KodRecepty (TEXT), Opis (TEXT), DataUtw (DATE). Unikalność: (WarstwaID, SpecyfikacjaID, KodRecepty).
+
+Kontrakt i lokalizacja:
+- Obiekty: ObiektID (PK), KodObiektu (TEXT), NazwaObiektu (TEXT), KM_Poczatek_m (LONG), KM_Koniec_m (LONG), Inwestor (TEXT), Kontrakt (TEXT), Uwagi (MEMO).
+- Lokalizacje: LokalizacjaID (PK), ObiektID (FK), KM_Start_m (LONG), KM_End_m (LONG), Pas (TEXT), Szerokosc_m (DOUBLE), Uwagi (MEMO).
+
+Parametry i wymagania:
+- ParametryJakosci: ParametrID (PK), NazwaParametru (TEXT), SymbolParametru (TEXT), Jednostka (TEXT), Opis (MEMO).
+- WymaganiaParametru: WymaganieID (PK), SpecyfikacjaID (FK), WarstwaID (FK), ParametrID (FK), TypKryterium (TEXT: Zakres|>=Min|<=Max|+/-), MinWartosc (DOUBLE null), MaxWartosc (DOUBLE null), Nominal (DOUBLE null), TolMinus (DOUBLE null), TolPlus (DOUBLE null), NormaMetoda (TEXT), Uwagi (MEMO). Unikalność: (SpecyfikacjaID, WarstwaID, ParametrID).
+
+Uziarnienie:
+- Sita: SitoID (PK), Rozmiar_mm (DOUBLE), Opis (TEXT), Kolejnosc (INT).
+- UziarnienieWymaganie: UziWymagID (PK), SpecyfikacjaID (FK), WarstwaID (FK), SitoID (FK), MinProc (DOUBLE), MaxProc (DOUBLE), NormaID (LONG null), Uwagi (MEMO). Unikalność: (SpecyfikacjaID, WarstwaID, SitoID).
+- UziarnienieWynik: UziWynikID (PK), BadanieID (FK), SitoID (FK), ProcPrzechodzenia (DOUBLE), Uwagi (MEMO). Unikalność: (BadanieID, SitoID).
+
+Badania:
+- RodzajeBadania: RodzajBadaniaID (PK), Nazwa (TEXT), NormaID (LONG null).
+- Badania: BadanieID (PK), ObiektID (FK), LokalizacjaID (FK), WarstwaID (FK), SpecyfikacjaID (FK), MaterialID (FK null), ReceptaID (FK null), PartiaID (FK), RodzajBadaniaID (FK), DataBadania (DATE), ProtokolNr (TEXT), ProbkaKod (TEXT), MiejscePobrania (TEXT), DataPobrania (DATE null), Uwagi (MEMO), DataWprowadzenia (DATE), Wprowadzil (TEXT).
+- WynikiBadania: WynikID (PK), BadanieID (FK), ParametrID (FK), NrProbki (INT null), Wartosc (DOUBLE null), Jednostka (TEXT null), Uwagi (MEMO null). Unikalność: (BadanieID, ParametrID, NrProbki).
+
+Priorytet 1 – Partie, NCR:
+- Partie: PartiaID (PK), ObiektID (FK), WarstwaID (FK), SpecyfikacjaID (FK), KM_Start_m (LONG), KM_End_m (LONG), DataWbudowania (DATE), Ilosc (DOUBLE), Jednostka (TEXT), Wykonawca (TEXT), Status (TEXT), Uwagi (MEMO), DataUtworzenia (DATE), Utworzyl (TEXT).
+- PlanPoboru: PlanID (PK), WarstwaID (FK), SpecyfikacjaID (FK), RodzajBadaniaID (FK null), ParametrID (FK null), Interwal (DOUBLE null), Jednostka (TEXT: 'm'|'m2'|'t'|'odcinek'), MinimalnaLiczba (INT), Aktywne (YESNO), Uwagi (MEMO).
+- OczekiwaneBadanie: ExpID (PK), PartiaID (FK), PlanID (FK), RodzajBadaniaID (FK null), ParametrID (FK null), Termin (DATE), Status (TEXT: DoWykonania|WRealizacji|Zrealizowane|PoTermin), BadanieID (FK null), KM_m (LONG null), Uwagi (MEMO).
+- NCR: NCRID (PK), PartiaID (FK null), BadanieID (FK null), DataZgloszenia (DATE), Klasyfikacja (TEXT), Opis (MEMO), Przyczyna (MEMO), Dzialania (MEMO), Odpowiedzialny (TEXT), Termin (DATE), Status (TEXT), DataZamkniecia (DATE null), Uwagi (MEMO).
+
+Priorytet 2 – Sprzęt, Próbki, Laboratoria:
+- SprzetPomiarowy: SprzetID (PK), Nazwa (TEXT), Typ (TEXT), NrSeryjny (TEXT), LaboratoriumID (FK), DataKalibracji (DATE), DataWaznosci (DATE), Dokument (ATTACHMENT null), Sciezka (TEXT null), Uwagi (MEMO).
+- Personel: OsobaID (PK), ImieNazwisko (TEXT), Rola (TEXT), Uprawnienia (TEXT), DataWaznosci (DATE), LaboratoriumID (FK), Uwagi (MEMO).
+- Probki: ProbkaID (PK), BadanieID (FK), KodQR (TEXT), DataPobrania (DATE), Miejsce (TEXT), Warunki (TEXT), Przechowywanie (TEXT), Uwagi (MEMO).
+- ChainOfCustody: CoCID (PK), ProbkaID (FK), OdKogo (TEXT), DoKogo (TEXT), Data (DATE), Adnotacje (MEMO).
+- Laboratoria: LaboratoriumID (PK), Nazwa (TEXT), NrAkredytacji (TEXT), Kontakt (TEXT), Uwagi (MEMO).
+
+Priorytet 3 – Wersje, role, integracje:
+- LogZdarzen: LogID (PK), Encja (TEXT), EncjaID (LONG), Akcja (TEXT), Uzytkownik (TEXT), DataCzas (DATE), Szczegoly (MEMO).
+- Zalaczniki: FileID (PK), Encja (TEXT: Badanie|Partia|NCR|Probka), EncjaID (LONG), Typ (TEXT), Opis (TEXT), Plik (ATTACHMENT null), Sciezka (TEXT null).
+- IntegracjeODBC: IntegracjaID (PK), Nazwa (TEXT), DSN (TEXT), TabelaDocelowa (TEXT), Mapowanie (MEMO), Aktywne (YESNO), Uwagi (MEMO).
+
+SEKCJA 6 – UNIKALNOŚCI I INDEKSY (M02)
+- Unique: Specyfikacje.Kod; WarstwaSpecDefault.WarstwaID; WarstwaMaterial(WarstwaID,MaterialID);
+  ReceptyMieszanek(WarstwaID,SpecyfikacjaID,KodRecepty); WymaganiaParametru(SpecyfikacjaID,WarstwaID,ParametrID);
+  UziarnienieWymaganie(SpecyfikacjaID,WarstwaID,SitoID); UziarnienieWynik(BadanieID,SitoID);
+  WynikiBadania(BadanieID,ParametrID,NrProbki).
+- OczekiwaneBadanie: ExpID jako PK + indeksy na (PartiaID) i (BadanieID).
+- Indeksy na wszystkich FK we wszystkich tabelach.
+- Dodatkowe indeksy wydajności: Lokalizacje(KM_Start_m, KM_End_m), Sita(Kolejnosc), UziarnienieWymaganie(SpecyfikacjaID, WarstwaID), Badania(DataBadania).
+
+SEKCJA 7 – KWERENDY (M04)
+Utwórz QueryDef o nazwach:
+- Q_Wyniki_Z_Ocena: ocena parametrów pojedynczych vs WymaganiaParametru (join po SpecyfikacjaID, WarstwaID, ParametrID). Wylicz pole Spelnia (Yes/No/Null) wg TypKryterium: „Zakres”, „>=Min”, „<=Max”, „+/-”.
+- Q_Niespelnienia_Param: z Q_Wyniki_Z_Ocena gdzie Spelnia=False lub Null.
+- Q_Uziarnienie_Ocena: BadanieID + Sito + ProcPrzechodzenia vs UziarnienieWymaganie (Min/Max) – pole SpelniaSito.
+- Q_Uziarnienie_Krzywa_Spelnia: agreguj Min(SpelniaSito) po BadanieID (wynik: True tylko jeśli wszystkie sita spełniają).
+- Q_Uziarnienie_Crosstab: TRANSFORM crosstab sit (kolumny) z ProcPrzechodzenia po BadanieID.
+- Q_Insert_Uziarnienie_Sita: INSERT brakujących wierszy do UziarnienieWynik z listy sit, dla (SpecyfikacjaID,WarstwaID) względem Badania.
+- Q_Partie_Combo_RS: lista Partii filtrowana po (Obiekt, Warstwa, Spec) – do combo w F_Badanie.
+- Q_SF_Oczekiwane_RS: źródło podformularza oczekiwanych badań.
+- Q_SF_BadaniaLotu_RS: badania powiązane z daną Partią.
+- Q_Loty_Pokrycie_Rodzaje, Q_Loty_Pokrycie_Parametry → UNION Q_Loty_Pokrycie → Q_Loty_Pokrycie_Summary (pokrycie %).
+- Q_Badania_DoWykonania: oczekiwane po terminie/na dziś.
+
+SEKCJA 8 – FORMULARZE (M05 i M08)
+- F_Badanie (główny): kontrolki i logika:
+  • Obiekt (combo) → filtruje Lokalizację; Warstwa; Specyfikacja (domyślna: wg ObiektWarstwaSpec lub WarstwaSpecDefault);
+    Materiał (po WarstwaMaterial); Recepta (po Warstwa+Spec); Partia (combo po Q_Partie_Combo_RS); RodzajBadania; Data/Protokoły/Próbka/Miejsce/Daty.
+  • Przyciski: „Załaduj krzywą (sita)” → Q_Insert_Uziarnienie_Sita (dla „Uziarnienie”); „Dodaj parametry” → dodaje domyślne ρb/wopt dla Nasyp/KNN/Stabilizacja/Mrozo oraz ρb/Pb/Pb_sol dla MMA/SMA/AC; „Powiąż z oczekiwanym”.
+  • Podformularze: SF_Uziarnienie (ciągły) i SF_Wyniki (ciągły); widoczność przełączana wg Rodzaju badania.
+- F_ObiektWarstwaSpec lub F_WarstwaSpecDefault: konfiguracja domyślnej specyfikacji.
+- Priorytet 1:
+  • F_Partia (Lot): dane partii + przycisk „Generuj oczekiwane badania”; SF_Oczekiwane, SF_BadaniaLotu.
+  • F_PlanPoboru (ciągły): definicje pozycji planu (Warstwa, Spec, Rodzaj/Parametr, interwał, min liczba, jednostka, aktywna).
+  • F_OczekiwaneBadanie: lista oczekiwanych z filtrami/statusami.
+  • F_NCR: rejestr niezgodności z polami i statusami.
+- Słowniki: F_Specyfikacje, F_Warstwy, F_Materialy, F_Recepty, F_Sita, F_Parametry, F_Obiekty, F_Lokalizacje, F_Sprzet, F_Personel, F_Probka, F_ChainOfCustody, F_Laboratoria.
+- Wszystkie nazwy formularzy/pól/etykiet po polsku.
+
+SEKCJA 9 – RAPORTY (M06)
+- R_ProtokolBadania: wariant „Uziarnienie” z wykresem krzywej + tabela Min/Max.
+- R_ZestawienieJakosci: Obiekt → Warstwa → Lokalizacja; min/avg/max + lista niespełnień.
+- R_Niespelnienia: parametry i uziarnienie niespełnione.
+- R_PokrycieBadan: pokrycie % oczekiwanych vs wykonanych per Partia i pozycja planu.
+- R_RejestrNCR: otwarte/zamknięte; SLA/terminy.
+
+SEKCJA 10 – ANALIZA SPRZECZNOŚCI (WYMAGANE WYNIKOWO)
+W swojej sekcji „Analiza sprzeczności i spójności” koniecznie wskaż:
+- Sprzeczność: „tabele per specyfikacja” vs model uogólniony (wygra model uogólniony – nie tworzyć tabel per spec; formularze/raporty dynamiczne).
+- OczekiwaneBadanie ma PlanID – wprowadź tabelę PlanPoboru (jak w sekcji 5).
+- Attachment vs ścieżka: przewidziane oba warianty (ATTACHMENT + TEXT Sciezka).
+- Kaskadowa aktualizacja PK AutoNumber: ON UPDATE CASCADE pozostaje zdefiniowane; ON DELETE CASCADE selektywne.
+- Dodatkowo wskaż, że wszystkie moduły posiadają obsługę błędów, log zdarzeń i SelfTest kompletności.
+
+SEKCJA 11 – REGUŁY OBLICZEŃ I WALIDACJE (M07/M08)
+- Km format: FormatKM(m As Long) → „km X+YYY”.
+- Długość Partii = KM_End_m − KM_Start_m.
+- Wymagana liczba oczekiwanych:
+  • Jednostka='m': max(MinimalnaLiczba, sufit(Długość/Interwał)).
+  • Jednostka inna (m2/t/odcinek): użyj MinimalnaLiczba (lub logika szczegółowa, jeśli zdefiniowana).
+- Pokrycie:
+  • Rodzaj: wykonane = liczba Badań w Partii o danym RodzajBadaniaID.
+  • Parametr: wykonane = liczba niepustych WB.Wartosc w Badaniach Partii z WB.ParametrID.
+- Walidacje: KM_Start_m ≤ KM_End_m; wymagaj SpecyfikacjaID w Badaniach; dla Uziarnienia wymagaj istniejącej envelope (UziarnienieWymaganie) dla pary Warstwa+Spec przed pozwoleniem na „Załaduj krzywą”.
+
+SEKCJA 12 – DANE STARTOWE (M03)
+- Sita (Rozmiar_mm; Kolejnosc – od największego):
+  63; 31,5; 22,4; 16; 11,2; 8; 4; 2; 1; 0,5; 0,25; 0,125; 0,063
+- RodzajeBadania (Nazwa – przykłady z praktyki):
+  „Uziarnienie”, „Gęstość objętościowa”, „Wilgotność optymalna”, „Zawartość asfaltu”, „Zawartość asfaltu rozpuszczalnego”, 
+  „Gęstość maksymalna teoretyczna (Gmm)”, „Wytrzymałość na rozciąganie pośrednie (ITS)”, „Odporność na działanie wody (ITSR)”,
+  „Wskaźnik piaskowy (SE)”, „Los Angeles (LA)”, „Mrozoodporność – ubytek masy”, „Zawartość pyłów <0,063 mm”,
+  „Moduł odkształcenia E2”, „Moduł odkształcenia E1”, „Stosunek E2/E1”, „Nośność CBR”, „Wskaźnik zagęszczenia Is”,
+  „Zawartość cementu (stabilizacja)”, „Zawartość lepiszcza odzyskana (Pb_sol)”, „Temperatura mieszanki przy wbudowaniu”
+- ParametryJakosci (20 parametrów: NazwaParametru, SymbolParametru, Jednostka):
+  1) Gęstość objętościowa, ρb, g/cm3
+  2) Wilgotność optymalna, wopt, %
+  3) Zawartość asfaltu, Pb, %
+  4) Zawartość asfaltu rozpuszczalnego, Pb_sol, %
+  5) Wolne przestrzenie w mieszance, Vv, %
+  6) Pusta przestrzeń między ziarnami, VMA, %
+  7) Wypełnienie wolnych przestrzeni lepiszczem, VFB, %
+  8) Gęstość maksymalna teoretyczna, Gmm, g/cm3
+  9) Wytrzymałość ITS, ITS, MPa
+  10) Odporność ITSR, ITSR, %
+  11) Wskaźnik piaskowy, SE, %
+  12) Los Angeles, LA, %
+  13) Ubytek po mrozoodporności, F_ubytek, %
+  14) Zawartość pyłów <0,063, P063, %
+  15) Zawartość cementu, C_cem, %
+  16) Moduł odkształcenia E2, E2, MPa
+  17) Moduł odkształcenia E1, E1, MPa
+  18) Stosunek E2/E1, E2E1, -
+  19) Nośność CBR, CBR, %
+  20) Wskaźnik zagęszczenia, Is, %
+- Warstwy i domyślne Spec (WarstwaSpecDefault):
+  NASYP → D-02.03.01
+  MROZOO → D-04.02.02
+  KNN-PB → D-04.04.02
+  STAB-C → D-04.05.01
+  AC-PB → D-04.07.01
+  AC16W → D-05.03.05A
+  AC11S → D-05.03.05B
+  SMA11 → D-05.03.13
+  KNN-N → D-05.02.01
+- Materiały i przypisania (WarstwaMaterial):
+  „Grunt piaszczysty” → NASYP
+  „Kruszywo 0/31,5” → KNN-PB, KNN-N
+  „AC 22P 50/70” → AC-PB
+  „AC 16W 50/70” → AC16W
+  „AC 11S 50/70” → AC11S
+  „SMA 11 50/70” → SMA11
+- Recepty (ReceptyMieszanek: Warstwa+Spec+Material):
+  AC11S-50/70 @ D-05.03.05B
+  AC16W-50/70 @ D-05.03.05A
+  AC22P-50/70 @ D-04.07.01
+  SMA11-50/70 @ D-05.03.13
+- Przykładowy Obiekt i Lokalizacja (do testów) – dodaj:
+  Obiekt: Kod „OB-001”, Nazwa „Odcinek testowy Sx”
+  Lokalizacja: KM_Start_m=0, KM_End_m=500, Pas „lewy”, Szerokosc_m=3.5
+
+SEKCJA 13 – PEŁNA LISTA SPECYFIKACJI (M03 – Specyfikacje: Kod unikalny + Nazwa)
+- D-M-00.00.00; Wymagania Ogólne
+- D-01.00.00; ROBOTY PRZYGOTOWAWCZE
+- D-01.01.01; Odtworzenie trasy i punktów wysokościowych
+- D-01.02.01; Usunięcie drzew, zagajników i krzewów
+- D-01.02.01A; Zabezpieczenie istniejących drzew i krzewów na okres wykonywania robót
+- D-01.02.02; Zdjęcie warstwy humusu
+- D-01.02.03; Wyburzenie obiektów budowlanych
+- D-01.02.04; Rozbiórki elementów dróg i ulic
+- D-02.00.01; Roboty ziemne. Wymagania ogólne 
+- D-02.01.01; Roboty ziemne. Wykonanie wykopów
+- D-02.01.01A; Platformy robocze dla ciężkiego sprzętu budowlanego
+- D-02.01.01B; Wzmocnienie podłoża gruntowego. Wymiana gruntów
+- D-02.01.01C; Wzmocnienie podłoża gruntowego. Materace geosyntetyczne 
+- D-02.01.01D ; Wzmocnienie podłoża gruntowego. Metoda drenów pionowych i nasypu przeciążającego
+- D-02.01.01E; Wzmocnienie podłoża gruntowego. Kolumny DSM
+- D-02.01.01F; Wzmocnienie podłoża gruntowego. Metoda iniekcji strumieniowej Jet Grouting
+- D-02.01.01G; Wzmocnienie podłoża gruntowego. Kolumny żwirowe
+- D-02.01.01H; Wzmocnienie podłoża gruntowego. Kolumny betonowo-żwirowe
+- D-02.01.01I; Wzmocnienie podłoża gruntowego. Prefabrykowane pale żelbetowe
+- D-02.01.01J; Wzmocnienie podłoża gruntowego. Pale wiercone typu CFA
+- D-02.03.01; Roboty ziemne. Wykonanie nasypów
+- D-03.00.00; ODWODNIENIE KORPUSU DROGOWEGO
+- D-03.01.01; Przepusty pod koroną drogi
+- D-03.03.01; Sączki podłużne
+- D-04.00.00; PODBUDOWY
+- D-04.02.01; Warstwa odcinająca
+- D-04.02.02; Warstwa mrozoochronna/odsączająca
+- D-04.03.01; Oczyszczenie i skropienie warstw konstrukcyjnych
+- D-04.04.02; Podbudowa pomocnicza i zasadnicza z mieszanki niezwiązanej
+- D-04.05.00; Warstwa ulepszonego podłoża z gruntu stabilizowanego spoiwem hydraulicznym lub wapnem
+- D-04.05.01; Podbudowa i warstwa mrozoochronna z mieszanki związanej cementem
+- D-04.07.01; Warstwa podbudowy z AC
+- D-04.10.01; Podbudowa z mieszanki mineralno-cementowo-emulsyjnej
+- D-05.00.00; NAWIERZCHNIE
+- D-05.02.01; Nawierzchnia z kruszywa niezwiązanego
+- D-05.03.01; Nawierzchnia z kostki kamiennej
+- D-05.03.05A; Nawierzchnia z betonu asfaltowego warstwa wiążąca
+- D-05.03.05B; Nawierzchnia z betonu asfaltowego warstwa ścieralna
+- D-05.03.05C; Warstwa podbudowy i wiążąca z WMS
+- D-05.03.13; Nawierzchnia z mieszanki mastyksowo-grysowej (SMA)
+- D-05.03.23; Nawierzchnia i chodniki z kostki brukowej
+- D-06.00.00; ROBOTY WYKOŃCZENIOWE
+- D-06.01.01A; Umocnienie skarp, rowów i pasa dzielącego przez humusowanie i obsiew
+- D-06.01.01B; Umocnienie skarp i rowów elementami prefabrykowanymi
+- D-06.02.01; Przepusty pod zjazdami
+- D-06.03.01; Umocnienie poboczy
+- D-07.00.00; URZĄDZENIA BEZPIECZEŃSTWA RUCHU
+- D-07.01.01; Oznakowanie poziome
+- D-07.02.01; Oznakowanie pionowe
+- D-07.02.02; Słupki prowadzące i krawędziowe oraz znaki kilometrowe i hektometrowe
+- D-07.05.01; Bariery ochronne
+- D-07.06.01; Ogrodzenia dróg
+- D-07.06.02; Urządzenia zabezpieczające ruch pieszy i rowerowy
+- D-07.08.01; Ekrany akustyczne. Ekrany przeciwolśnieniowe. Ekrany ekologiczne
+- D-07.09.01; Drogowy ekran przeciwolśnieniowy
+- D-08.00.00; ELEMENTY ULIC
+- D-08.01.01; Krawężniki betonowe
+- D-08.01.02; Krawężniki kamienne
+- D-08.03.01; Obrzeża betonowe
+- D-08.05.01; Ścieki
+- D-09.00.00; ZIELEŃ DROGOWA
+- D-09.01.01; Zieleń drogowa
+- M-11.00.00; Fundamentowanie
+- M-12.00.00; Zbrojenie
+- M-13.00.00; Beton
+- M-14.00.00; Konstrukcje stalowe
+- M-15.00.00; Izolacje i nawierzchnie
+- M-16.00.00; Odwodnienie
+- M-17.00.00; Łożyska
+- M-18.00.00; Urządzenia dylatacyjne
+- M-19.00.00; Elementy zabezpieczające
+- M-20.01.00; Inne roboty mostowe. Roboty przyobiektowe
+- M-20.02.00; Inne roboty mostowe. Roboty na obiekcie
+- U-01.03.01; Przebudowa napowietrznych linii elektroenergetycznych
+- U-01.03.02; Przebudowa kablowych linii energetycznych
+- U-01.03.03; Przebudowa napowietrznych linii telekomunikacyjnych
+- U-01.03.04; Przebudowa kablowych linii telekomunikacyjnych
+- U-01.03.05; Przebudowa i budowa podziemnych sieci wodociągowych
+- U-01.03.06; Przebudowa podziemnych sieci gazowych
+- U-01.03.07; Przebudowa urządzeń melioracyjnych
+- U-03.02.01; Kanalizacja deszczowa i sanitarna
+- U-03.05.01b; Zbiorniki retencyjne i retencyjno-infiltracyjne
+- U-05.03.01; Kanalizacja teletechniczna
+- U-07.07.01; Oświetlenie drogowe
+- U-10.15.01; Łączność drogi ekspresowej
+
+SEKCJA 14 – KRYTERIA ODBIORU (Acceptance) – CO MA DZIAŁAĆ
+- Utworzone wszystkie tabele, relacje (FK DDL z integralnością) i indeksy (sekcje 5–6).
+- Działające formularze: F_Badanie, SF_Uziarnienie, SF_Wyniki, F_ObiektWarstwaSpec/WarstwaSpecDefault, F_Partia, SF_Oczekiwane, SF_BadaniaLotu, F_PlanPoboru, F_OczekiwaneBadanie, F_NCR, oraz F_* słownikowe.
+- Automatyczna ocena: Q_Wyniki_Z_Ocena, Q_Uziarnienie_Ocena; status krzywej – Q_Uziarnienie_Krzywa_Spelnia.
+- Przyciski: „Załaduj krzywą”, „Dodaj parametry”, „Powiąż z oczekiwanym”.
+- Raporty: R_ProtokolBadania, R_ZestawienieJakosci, R_Niespelnienia, R_PokrycieBadan, R_RejestrNCR.
+- Dane startowe: pełna lista Specyfikacji, Sita, RodzajeBadania, Parametry (20), Warstwy z domyślną spec, Materiały, Recepty, przykładowy Obiekt/Lokalizacja, przykładowy PlanPoboru (min. 2 pozycje).
+- Test przepływu: Partia→Plan→Oczekiwane→Badanie→Ocena→Raport.
+- Niefunkcjonalne: indeksy FK; audyt (LogZdarzen); przygotowane FE/BE; backup BE.
+
+SEKCJA 15 – WYMAGANIA DODATKOWE DOT. KODU
+- W każdym module: publiczne procedury według nazw:
+  • M01: UtworzTabele, Start_Build
+  • M02: UtworzIndeksyIRelacje
+  • M03: ZaladujDaneStartowe
+  • M04: UtworzKwerendy
+  • M05: UtworzFormularze
+  • M06: UtworzRaporty
+  • M07: OcenaParametru, OcenaUziarnienia, FormatKM, PobierzDomyslnaSpec, DodajParametryDomyslne, WstawSitaDlaBadania, LogujZdarzenie, SelfTest_Kompletnosc
+  • M08: UtworzFormularze_PartieNCR, GenerujOczekiwaneBadania, AktualizujStatusOczekiwanych, PokrycieBadan, UtworzIZlinkujBE, BackupBE
+  • M09: Przyklad_Wymagania_20
+  • M10: Przyklad_Wyniki_20
+- Wszędzie pełna obsługa błędów i logowanie do LogZdarzen (akcja: „Błąd”).
+- Walidacje danych (KM, SpecyfikacjaID obowiązkowe, envelope istniejąca dla Uziarnienia).
+
+SEKCJA 16 – CHECKLISTA KOMPLETNOŚCI (AUTO-TEST W M07.SelfTest_Kompletnosc)
+- Sprawdź istnienie tabel kluczowych (co najmniej): Specyfikacje, Warstwy, WarstwaSpecDefault, Materialy, WarstwaMaterial, ReceptyMieszanek, Obiekty, Lokalizacje, ParametryJakosci, WymaganiaParametru, Sita, UziarnienieWymaganie, UziarnienieWynik, RodzajeBadania, Badania, WynikiBadania, Partie, PlanPoboru, OczekiwaneBadanie, NCR, SprzetPomiarowy, Personel, Probki, ChainOfCustody, Laboratoria, LogZdarzen, Zalaczniki, IntegracjeODBC.
+- Sprawdź istnienie kwerend: nazwy z sekcji 7.
+- Sprawdź istnienie formularzy: nazwy z sekcji 8.
+- Sprawdź istnienie raportów: nazwy z sekcji 9.
+- Sprawdź indeksy unikalne: nazwy/kolumny z sekcji 6 (np. Specyfikacje.Kod unique).
+- Sprawdź, że M01.Start_Build wywołał wszystkie kroki i nie zgłoszono błędów.
+- Zwróć wynik: MsgBox „SelfTest OK” lub lista braków (w MsgBox oraz log w LogZdarzen).
+
+SEKCJA 17 – WYTYCZNE DLA MODUŁÓW
+M01_Schemat_Tabele:
+- Utwórz tabele DDL (CREATE TABLE), pola z typami, domyślne wartości (np. DataUtworzenia=Now()) tam gdzie sensowne.
+- Nie twórz FK tutaj (FK w M02).
+- Dodaj funkcję pomocniczą ExecSQL(SQL As String) z obsługą błędów i logiem.
+
+M02_IndeksyOgraniczenia:
+- CREATE INDEX (unique i zwykłe), ALTER TABLE ... ADD CONSTRAINT FOREIGN KEY ... ON UPDATE CASCADE [i ON DELETE CASCADE tam gdzie sensowne].
+- Walidacje typów kryteriów (CHECK lub ValidationRule przy polu TypKryterium).
+- Indeksy na FK wszystkich tabel.
+
+M03_DaneStartowe:
+- INSERT pełnej listy Specyfikacji (Sekcja 13).
+- INSERT Sita (z Kolejnosc).
+- INSERT RodzajeBadania (lista w sekcji 12).
+- INSERT ParametryJakosci (20 sztuk).
+- INSERT Warstwy, WarstwaSpecDefault (mapowanie z sekcji 12).
+- INSERT Materialy, WarstwaMaterial (mapowania z sekcji 12).
+- INSERT ReceptyMieszanek (z sekcji 12).
+- INSERT przykładowy Obiekt i Lokalizacje.
+
+M04_Kwerendy:
+- Utwórz QueryDef SQL dla wszystkich kwerend z sekcji 7 (z użyciem DAO.QueryDefs.Append, po wcześniejszym usunięciu istniejących konfliktowych nazw).
+
+M05_Formularze:
+- Programowo utwórz: F_Badanie, SF_Uziarnienie (ciągły), SF_Wyniki (ciągły), F_WarstwaSpecDefault lub F_ObiektWarstwaSpec.
+- Dodaj przyciski i zdarzenia kliknięcia, wiążąc je z funkcjami M07 i kwerendami M04.
+
+M06_Raporty:
+- Programowo utwórz raporty z sekcji 9; R_ProtokolBadania powinien zawierać wykres XY krzywej uziarnienia (ProcPrzechodzenia vs Kolejnosc Sita) i tabelę Min/Max.
+
+M07_LogikaOceny:
+- Funkcja OcenaParametru(TypKryterium, Min, Max, Nominal, TolMinus, TolPlus, Wartosc) As Variant → True/False/Null.
+- Funkcja OcenaUziarnienia(BadanieID) As Variant → True/False/Null.
+- FormatKM(m As Long) As String → „km X+YYY”.
+- PobierzDomyslnaSpec(WarstwaID, [ObiektID]) As Long – preferuj ObiektWarstwaSpec, inaczej WarstwaSpecDefault.
+- DodajParametryDomyslne(BadanieID) – wg TypWarstwy (Nasyp/KNN/Stabilizacja/Mrozo → ρb, wopt; MMA/SMA/AC → ρb, Pb, Pb_sol).
+- WstawSitaDlaBadania(BadanieID) – INSERT brakujących sit dla pary Warstwa+Spec z UziarnienieWymaganie.
+- LogujZdarzenie(Encja, EncjaID, Akcja, Uzytkownik, Szczegoly).
+- SelfTest_Kompletnosc – patrz Sekcja 16.
+
+M08_PartieNCR:
+- Formularze: F_Partia (+ SF_Oczekiwane, SF_BadaniaLotu), F_PlanPoboru, F_OczekiwaneBadanie, F_NCR.
+- Procedury:
+  • GenerujOczekiwaneBadania(PartiaID) – wg reguł Sekcja 11.
+  • AktualizujStatusOczekiwanych – statusy DoWykonania/WRealizacji/Zrealizowane/PoTermin.
+  • PokrycieBadan(PartiaID) – wskaźniki per Rodzaj/Parametr.
+  • UtworzIZlinkujBE(SciezkaBE): tworzy nowy plik BE, kopiuje schemat, dane słownikowe i linkuje tabele (DoCmd.TransferDatabase acLink).
+  • BackupBE(SciezkaBE, FolderBackup).
+
+M09_PrzykladoweWymaganiaParametrow:
+- Wstaw 20 przykładowych wymagań: różne Warstwy+Spec (np. NASYP@D-02.03.01; AC11S@D-05.03.05B; AC16W@D-05.03.05A; SMA11@D-05.03.13).
+- Ustaw TypKryterium (Zakres/>=Min/<=Max/+/-), wartości Min/Max lub Nominal/TolMinus/TolPlus.
+- Dodaj przykładowe UziarnienieWymaganie (dla paru Warstwa+Spec) na sitach z listy.
+
+M10_PrzykladoweWynikiBadan:
+- Dodaj przykładową Partię (w obiekcie testowym), min. 2 Badania (różne Rodzaje), 20 wyników dla 10 parametrów (po 10 wyników na badanie) oraz przykładowe UziarnienieWynik dla krzywej (wszystkie sita). Powiąż 1 badanie z pozycją OczekiwaneBadanie.
+
+SEKCJA 18 – ZASADY NAZEWNICZE I ALIASY
+- Tabele: liczba mnoga; PK: [NazwaTabeli]ID.
+- Formularze: F_*; Podformularze: SF_*; Raporty: R_*; Kwerendy: Q_*.
+- Etykiety/Caption w języku polskim, np.: „Specyfikacja”, „Warstwa”, „Rodzaj badania”.
+- Jednostki: ρb [g/cm3], wopt [%], Pb [%], Pb_sol [%], E2/E1 [MPa], CBR [%], Is [%], LA [%], SE [%], F_ubytek [%].
+
+SEKCJA 19 – OGRANICZENIA I ZALECENIA
+- Nie używaj db.CreateRelation – relacje wyłącznie przez DDL.
+- Przy ON DELETE CASCADE stosuj ostrożnie: dopuszczalne m.in. dla: Badania→WynikiBadania/UziarnienieWynik; Partia→OczekiwaneBadanie; Badanie→Probki; Probka→ChainOfCustody.
+- Wszystkie procedury z komunikatami dla użytkownika mają używać polskich opisów.
+
+SEKCJA 20 – INSTRUKCJA KROK PO KROKU URUCHOMIENIA (WYMAGAJ, ABY ZOSTAŁA ZWRÓCONA NA KOŃCU)
+- Wygeneruj sekcję „Instrukcja uruchomienia” dla użytkownika:
+  1) Utwórz nową bazę .accdb w MS Access 2016.
+  2) W Edytorze VBA włącz referencje: Microsoft Office 16.0 Object Library; Microsoft Office 16.0 Access database engine Object Library.
+  3) Importuj 10 modułów .bas (M01–M10).
+  4) Uruchom: M01_Schemat_Tabele.Start_Build.
+  5) Otwórz F_Partia, załóż Partię, kliknij „Generuj oczekiwane badania”.
+  6) Otwórz F_Badanie i zarejestruj badanie; użyj „Załaduj krzywą” i „Dodaj parametry”; „Powiąż z oczekiwanym”.
+  7) Uruchom raporty (R_ProtokolBadania, R_ZestawienieJakosci, R_Niespelnienia, R_PokrycieBadan, R_RejestrNCR).
+  8) Sprawdź SelfTest_Kompletnosc → komunikat OK.
+
+SEKCJA 21 - DANE ZEWNĘTRZNE I PYTANIA DODATKOWE
+- Przed rozpoczęciem generowania kodu, przeanalizuj wymagania zawarte w SEKCJACH 0 do 20
+- Zadaj pytania uzupełniające w celu kompletnego zrozumienia zadania i uzupełnienia wymagań
+- Zadaj pytania o potwierdzenie zastosowania wiedzy pozyskanej z zewnątrz
+- Podczas generowania kodu pokazuj bieżący postęp
+- przygotuj schemat graficzny przepływu danych (diagram: Partia → PlanPoboru → OczekiwaneBadanie → Badanie → Wyniki → Ocena → Raporty), żeby mieć dokumentację techniczną
+
+KONIEC PROMPTU – WYGNERUJ WYNIK WEDŁUG SEKCJI 0.
