@@ -266,7 +266,7 @@ ErrH:
     MsgBox "B³¹d WstawSitaDlaBadania: " & Err.Description, vbCritical
 End Sub
 
-Public Sub SelfTest_Kompletnosc()
+Public Sub SelfTest_Kompletnosc() As Boolean
     On Error GoTo ErrH
     Dim brak As String
     brak = ""
@@ -299,21 +299,23 @@ Public Sub SelfTest_Kompletnosc()
         "R_ProtokolBadania|R_ZestawienieJakosci|R_Niespelnienia|R_PokrycieBadan|R_RejestrNCR", "|"), brak
     
     ' Indeksy unikalne wg M02 (sprawdzamy po nazwach)
-    SprawdzIndeks "Specyfikacje", "UX_Specyfikacje_Kod", brak
-    SprawdzIndeks "WarstwaSpecDefault", "UX_WarstwaSpecDefault_Warstwa", brak
-    SprawdzIndeks "WarstwaMaterial", "UX_WarstwaMaterial", brak
-    SprawdzIndeks "ReceptyMieszanek", "UX_Recepty", brak
-    SprawdzIndeks "WymaganiaParametru", "UX_WymaganiaParametru", brak
-    SprawdzIndeks "UziarnienieWymaganie", "UX_UziarnienieWymaganie", brak
-    SprawdzIndeks "UziarnienieWynik", "UX_UziarnienieWynik", brak
-    SprawdzIndeks "WynikiBadania", "UX_WynikiBadania", brak
+    SprawdzIndeks "Specyfikacje", "UQ_Spec_Kod", brak
+    SprawdzIndeks "WarstwaSpecDefault", "UQ_WSD_Warstwa", brak
+    SprawdzIndeks "WarstwaMaterial", "UQ_WM_WarstwaMaterial", brak
+    SprawdzIndeks "ReceptyMieszanek", "UQ_Rec_WarSpecKod", brak
+    SprawdzIndeks "WymaganiaParametru", "UQ_Wym_WarSpecParam", brak
+    SprawdzIndeks "UziarnienieWymaganie", "UQ_UWym_WarSpecSito", brak
+    SprawdzIndeks "UziarnienieWynik", "UQ_UWyn_BadSito", brak
+    SprawdzIndeks "WynikiBadania", "UQ_Wyn_BadParamProb", brak
     
     If Len(brak) = 0 Then
         MsgBox "SelfTest OK – kompletnoœæ potwierdzona.", vbInformation
-    Else
+		SelfTest_Kompletnosc = True
+	Else
         MsgBox "SelfTest – wykryto braki:" & vbCrLf & brak, vbExclamation
+		SelfTest_Kompletnosc = False
     End If
-    Exit Sub
+    Exit Function
 ErrH:
     MsgBox "B³¹d SelfTest_Kompletnosc: " & Err.Description, vbCritical
 End Sub

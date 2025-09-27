@@ -23,10 +23,12 @@ Public Sub ZaladujDaneStartowe()
     ' Sita
     '------------------------------------------------------
     Dim sita As Variant
-    sita = Array(63, 31.5, 22.4, 16, 11.2, 8, 4, 2, 1, 0.5, 0.25, 0.125, 0.063)
+    sita = Split("63|31.5|22.4|16|11.2|8|4|2|1|0.5|0.25|0.125|0.063", "|")
     Dim i As Integer
     For i = LBound(sita) To UBound(sita)
-        ExecSQL "INSERT INTO Sita(Rozmiar_mm, Opis, Kolejnosc) VALUES(" & sita(i) & ", 'Sito " & sita(i) & " mm'," & (i + 1) & ")"
+      Dim rozmiarSita As Double
+        rozmiarSita = CDbl(sita(i))
+        ExecSQL "INSERT INTO Sita(Rozmiar_mm, Opis, Kolejnosc) VALUES(" & rozmiarSita & ", 'Sito " & rozmiarSita & " mm'," & (i + 1) & ")"
     Next i
     
     '------------------------------------------------------
@@ -47,32 +49,29 @@ Public Sub ZaladujDaneStartowe()
     ' Parametry jakoœci
     '------------------------------------------------------
     Dim parametry As Variant
-    parametry = Array( _
-        "Gêstoœæ objêtoœciowa|?b|g/cm3", _
-        "Wilgotnoœæ optymalna|wopt|%", _
-        "Zawartoœæ asfaltu|Pb|%", _
-        "Zawartoœæ asfaltu rozpuszczalnego|Pb_sol|%", _
-        "Wolne przestrzenie w mieszance|Vv|%", _
-        "Pusta przestrzeñ miêdzy ziarnami|VMA|%", _
-        "Wype³nienie wolnych przestrzeni lepiszczem|VFB|%", _
-        "Gêstoœæ maksymalna teoretyczna|Gmm|g/cm3", _
-        "Wytrzyma³oœæ ITS|ITS|MPa", _
-        "Odpornoœæ ITSR|ITSR|%", _
-        "WskaŸnik piaskowy|SE|%", _
-        "Los Angeles|LA|%", _
-        "Ubytek po mrozoodpornoœci|F_ubytek|%", _
-        "Zawartoœæ py³ów <0,063|P063|%", _
-        "Zawartoœæ cementu|C_cem|%", _
-        "Modu³ odkszta³cenia E2|E2|MPa", _
-        "Modu³ odkszta³cenia E1|E1|MPa", _
-        "Stosunek E2/E1|E2E1|-", _
-        "Noœnoœæ CBR|CBR|%", _
-        "WskaŸnik zagêszczenia|Is|%")
+    parametry = Split("Gestosc objetosciowa|?b|g/cm3|" & _
+        "Wilgotnosc optymalna|wopt|%|" & _
+        "Zawartosc asfaltu|Pb|%|" & _
+        "Zawartosc asfaltu rozpuszczalnego|Pb_sol|%|" & _
+        "Wolne przestrzenie w mieszance|Vv|%|" & _
+        "Pusta przestrzen miedzy ziarnami|VMA|%|" & _
+        "Wypelnienie wolnych przestrzeni lepiszczem|VFB|%|" & _
+        "Gestosc maksymalna teoretyczna|Gmm|g/cm3|" & _
+        "Wytrzymalosc ITS|ITS|MPa|" & _
+        "Odpornosc ITSR|ITSR|%|" & _
+        "Wskaznik piaskowy|SE|%|" & _
+        "Los Angeles|LA|%|" & _
+        "Ubytek po mrozoodpornosci|F_ubytek|%|" & _
+        "Zawartosc pylow <0,063|P063|%|" & _
+        "Zawartosc cementu|C_cem|%|" & _
+        "Modul odksztalcenia E2|E2|MPa|" & _
+        "Modul odksztalcenia E1|E1|MPa|" & _
+        "Stosunek E2/E1|E2E1|-|" & _
+        "Nosnosc CBR|CBR|%|" & _
+        "Wskaznik zageszczenia|Is|%", "|")
     Dim p As Integer
-    For p = LBound(parametry) To UBound(parametry)
-        Dim parts As Variant
-        parts = Split(parametry(p), "|")
-        ExecSQL "INSERT INTO ParametryJakosci(NazwaParametru, SymbolParametru, Jednostka) VALUES('" & parts(0) & "','" & parts(1) & "','" & parts(2) & "')"
+    For p = LBound(parametry) To UBound(parametry) Step 3
+        ExecSQL "INSERT INTO ParametryJakosci(NazwaParametru, SymbolParametru, Jednostka) VALUES('" & parametry(p) & "','" & parametry(p + 1) & "','" & parametry(p + 2) & "')"
     Next p
     
     '------------------------------------------------------

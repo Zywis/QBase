@@ -197,7 +197,23 @@ Public Sub UtworzTabele()
             " DataUtworzenia DATE," & _
             " Utworzyl TEXT(50)" & _
             ")"
-
+	
+	ExecSQL "CREATE TABLE NCR (" & _
+            " NCRID AUTOINCREMENT CONSTRAINT PK_NCR PRIMARY KEY," & _
+            " PartiaID LONG," & _
+            " BadanieID LONG," & _
+            " DataZgloszenia DATE," & _
+            " Klasyfikacja TEXT(50)," & _
+            " Opis LONGTEXT," & _
+            " Przyczyna LONGTEXT," & _
+            " Dzialania LONGTEXT," & _
+            " Odpowiedzialny TEXT(100)," & _
+            " Termin DATE," & _
+            " Status TEXT(30)," & _
+            " DataZamkniecia DATE," & _
+            " Uwagi LONGTEXT" & _
+            ")"
+			
     ExecSQL "CREATE TABLE PlanPoboru (" & _
             " PlanID AUTOINCREMENT CONSTRAINT PK_Plan PRIMARY KEY," & _
             " WarstwaID LONG NOT NULL," & _
